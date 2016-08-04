@@ -2,11 +2,12 @@
 Google OpenId, OAuth2, OAuth1, Google+ Sign-in backends, docs at:
     http://psa.matiasaguirre.net/docs/backends/google.html
 """
+from enum import Enum
+
 from social.utils import handle_http_errors
 from social.backends.open_id import OpenIdAuth, OpenIdConnectAuth
 from social.backends.oauth import BaseOAuth2, BaseOAuth1
 from social.exceptions import AuthMissingParameter
-
 
 class BaseGoogleAuth(object):
     def get_user_id(self, details, response):
@@ -49,6 +50,12 @@ class BaseGoogleAuth(object):
                 'last_name': last_name}
 
 
+class OAuth2Endpoints(Enum):
+    v1 = 'https://www.googleapis.com/oauth2/v1/userinfo'
+    v3 = 'https://www.googleapis.com/oauth2/v3/tokeninfo'
+    gplus = 'https://www.googleapis.com/plus/v1/people/me'
+
+
 class BaseGoogleOAuth2API(BaseGoogleAuth):
     def get_scope(self):
         """Return list with needed access scope"""
@@ -65,13 +72,23 @@ class BaseGoogleOAuth2API(BaseGoogleAuth):
     def user_data(self, access_token, *args, **kwargs):
         """Return user data from Google API"""
         if self.setting('USE_DEPRECATED_API', False):
-            url = 'https://www.googleapis.com/oauth2/v1/userinfo'
+            url = OAuth2Endpoints.v1
+        elif self.setting('USE_V3_API', False):
+            url = OAuth2Endpoints.v3
         else:
-            url = 'https://www.googleapis.com/plus/v1/people/me'
-        return self.get_json(url, params={
-            'access_token': access_token,
-            'alt': 'json'
-        })
+            url = OAuth2Endpoints.gplus
+        return self.get_json(url.value, params=self.get_params(url, access_token))
+
+    def get_params(self, scheme, token):
+        if scheme is OAuth2Endpoints.v3:
+            return {
+                'id_token': token
+            }
+        else:
+            return {
+                'access_token': token,
+                'alt': 'json'
+            }
 
     def revoke_token_params(self, token, uid):
         return {'token': token}

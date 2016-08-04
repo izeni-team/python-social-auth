@@ -9,6 +9,7 @@ from social.backends.open_id import OpenIdAuth, OpenIdConnectAuth
 from social.backends.oauth import BaseOAuth2, BaseOAuth1
 from social.exceptions import AuthMissingParameter
 
+
 class BaseGoogleAuth(object):
     def get_user_id(self, details, response):
         """Use google email as unique id"""
